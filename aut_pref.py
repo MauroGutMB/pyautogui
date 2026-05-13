@@ -16,24 +16,26 @@ DATE_DRAG_DISTANCE = 120
 
 # All coordinates are in screen pixels.
 COORDS: Dict[str, Tuple[int, int]] = {
-    "data": (942, 263),
-    "dados_do_bem": (567, 347),
-    "n_da_nf": (626, 508),
-    "data_da_nf": (752, 516),
-    "quantidade": (958, 515),
-    "valor": (876, 684),
-    "categoria_button": (846, 457),
-    "categoria_option": (747, 642),
-    "fornecedor_search": (1527, 461),
-    "fornecedor_field": (768, 413),
-    "fornecedor_result": (751, 479),
-    "conservacao_button": (765, 683),
-    "conservacao_option": (669, 745),
-    "departamento_button": (1399, 665),
-    "departamento_option": (1437, 369),
-    "replicar": (909, 181),
-    "salvar": (1299, 979),
-    "nova_sessao": (0, 0),
+    "data": (620, 170),
+    "dados_do_bem": (242, 253),
+    "n_da_nf": (236, 424),
+    "data_da_nf": (445, 420),
+    "quantidade": (640, 420),
+    "valor": (445, 590),
+    "categoria_button": (529, 361),
+    "categoria_option": (464, 545),
+    "fornecedor_search": (1214, 366),
+    "fornecedor_field": (471, 317),
+    "fornecedor_result": (570, 389),
+    "conservacao_button": (447, 593),
+    "departamento_button": (1162, 752),
+    "departamento_option": (494, 380),
+    "replicar": (401, 931),
+    "salvar": (326, 931),
+    "salvar_confirmacao": (658, 574),
+    "salvar_ok": (755, 567),
+    "novo_item": (318, 167),
+    "nova_sessao": (335, 182),
 }
 
 FORNECEDOR_QUERY = "SM"
@@ -69,18 +71,39 @@ def click_only(x: int, y: int) -> None:
     move_and_click(x, y)
 
 
-def click_nova_sessao() -> None:
-    if "nova_sessao" not in COORDS:
+def type_current_field(text: str, interval: float) -> None:
+    pyautogui.hotkey("ctrl", "a")
+    pyautogui.typewrite(text, interval=interval)
+
+
+def require_coord(name: str) -> Tuple[int, int]:
+    if name not in COORDS:
         raise SystemExit(
-            "Missing 'nova_sessao' in COORDS/coords JSON. "
+            f"Missing '{name}' in COORDS/coords JSON. "
             "Add it to click after salvar."
         )
-    if COORDS["nova_sessao"] == (0, 0):
+    if COORDS[name] == (0, 0):
         raise SystemExit(
-            "Coordinate 'nova_sessao' is (0, 0). "
+            f"Coordinate '{name}' is (0, 0). "
             "Update it with the correct screen position."
         )
-    click_only(*COORDS["nova_sessao"])
+    return COORDS[name]
+
+
+def click_nova_sessao() -> None:
+    click_only(*require_coord("nova_sessao"))
+
+
+def click_salvar_confirmacao(delay: float) -> None:
+    time.sleep(delay)
+    click_only(*require_coord("salvar_confirmacao"))
+    time.sleep(delay)
+    click_only(*require_coord("salvar_ok"))
+
+
+def click_novo_item(delay: float) -> None:
+    time.sleep(delay)
+    click_only(*require_coord("novo_item"))
 
 
 def move_and_click(x: int, y: int) -> None:
@@ -110,7 +133,13 @@ def select_dropdown(field: str) -> None:
     button_key = f"{field}_button"
     option_key = f"{field}_option"
     move_and_click(*COORDS[button_key])
-    move_and_click(*COORDS[option_key])
+    move_and_double_click(*COORDS[option_key])
+
+
+def select_conservacao_with_keys() -> None:
+    move_and_click(*COORDS["conservacao_button"])
+    pyautogui.press("up", presses=1, interval=0.3)
+    pyautogui.press("enter")
 
 
 def select_fornecedor(interval: float) -> None:
@@ -130,8 +159,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--quantidade", required=True, help="QUANTIDADE")
     parser.add_argument("--valor", required=True, help="VALOR")
     parser.add_argument("--coords", help="Path to JSON file with coordinates")
-    parser.add_argument("--delay", type=float, default=0.4, help="Delay between actions")
-    parser.add_argument("--type-interval", type=float, default=0.02, help="Typing interval")
+    parser.add_argument("--delay", type=float, default=0.3, help="Delay between actions")
+    parser.add_argument("--type-interval", type=float, default=0.08, help="Typing interval")
     parser.add_argument("--replicar", action="store_true", help="Click Replicar")
     parser.add_argument("--salvar", action="store_true", help="Click Salvar")
     parser.add_argument("--nova-sessao", action="store_true", help="Click Nova Sessao")
@@ -162,13 +191,16 @@ def main() -> None:
     drag_select_and_type_date(*COORDS["data_da_nf"], args.data_da_nf, args.type_interval)
     click_and_type(*COORDS["quantidade"], args.quantidade, args.type_interval)
     select_fornecedor(args.type_interval)
-    click_and_type(*COORDS["valor"], args.valor, args.type_interval)
-    select_dropdown("conservacao")
+    select_conservacao_with_keys()
+    type_current_field(args.valor, args.type_interval)
     select_dropdown("departamento")
     if args.replicar:
         click_only(*COORDS["replicar"])
     if args.salvar:
         click_only(*COORDS["salvar"])
+        click_salvar_confirmacao(args.delay)
+        if args.nova_sessao:
+            click_novo_item(args.delay)
     if args.nova_sessao:
         click_nova_sessao()
 

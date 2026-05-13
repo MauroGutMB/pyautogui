@@ -79,7 +79,6 @@ def main() -> None:
         data, dados_do_bem, n_da_nf, data_da_nf, quantidade, valor = block[:6]
         replicar = parse_bool(block[6]) if len(block) >= 7 else False
         salvar = parse_bool(block[7]) if len(block) >= 8 else False
-        nova_sessao = index < len(blocks)
 
         cmd = [
             sys.executable,
@@ -101,8 +100,6 @@ def main() -> None:
             cmd.append("--replicar")
         if salvar:
             cmd.append("--salvar")
-        if nova_sessao:
-            cmd.append("--nova-sessao")
 
         subprocess.run(cmd, check=True)
 
